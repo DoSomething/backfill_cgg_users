@@ -2,18 +2,15 @@ require('dotenv').config();
 
 const csv = require('fast-csv');
 const csvPath = `${__dirname}/users.csv`;
+const fs = require('fs')
 
 const request = require('superagent');
 const northstar = require('./northstar');
 
 const users = {};
 
-function touchNorthstarUser(nsUser) {
-  northstar.touchUser(nsUser.id).then((updatedUser) => {
-    if (!updatedUser.drupal_id) console.error(`Drupal ID not set for user ${updatedUser._id}`);
-
-    getNorthstarUser();
-  });
+function logMsg(msg) {
+  fs.appendFileSync('./brokenUsers.txt', `${msg} \n`);
 }
 
 function getNorthstarUser() {
@@ -27,20 +24,29 @@ function getNorthstarUser() {
 
   northstar.findUserByMobile(user.mobile)
   .then((nsUser) => {
+    let msg = undefined;
+
     if (!nsUser.hasOwnProperty('drupal_id')) {
-      console.log(`Missing NS account for ${user.mobile}`);
-      getNorthstarUser();
+      msg = `Missing NS account for ${user.mobile}`;
+
     }
-    else if (nsUser.drupal_id) {
-       getNorthstarUser();
+    else if (!nsUser.drupal_id) {
+      msg = `Missing Phoenix account for ${user.mobile}`;
     }
-    else {
-      touchNorthstarUser(nsUser);
+
+    if (msg) {
+      logMsg(msg);
     }
 
     delete users[user.mobile];
+    getNorthstarUser();
   })
-  .catch(console.error)
+  .catch((err) => {
+    console.error(err);
+    logMsg(`Missing NS account for ${user.mobile}`);
+    delete users[user.mobile];
+    getNorthstarUser();
+  })
 }
 
 function loadUsers() {

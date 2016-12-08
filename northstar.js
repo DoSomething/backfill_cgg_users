@@ -8,7 +8,7 @@ const clientSecret = process.env.NORTHSTAR_CLIENT_SECRET;
 const authHeader = 'Authorization';
 
 function parseUser(res) {
-  return res.data || {};
+  return res ? res.data : {};
 }
 
 module.exports = {
